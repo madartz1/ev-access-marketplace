@@ -1,0 +1,17 @@
+import {afterEach,beforeEach,test,expect,vi} from 'vitest';
+const m=vi.hoisted(()=>({db:{$transaction:vi.fn()},tx:{user:{count:vi.fn(),findUnique:vi.fn(),create:vi.fn()}}}));
+vi.mock('../lib/db',()=>({db:m.db}));
+vi.mock('next/navigation',()=>({redirect:(path:string)=>{throw Error('REDIRECT '+path)}}));
+import {verifyOwnerSetupToken,ownerDetails} from '../lib/owner-setup';
+import {setupOwner} from '../lib/owner-actions';
+const token='a-secure-test-token-that-is-over-32-characters';
+const form=(overrides:Record<string,string>={})=>{const f=new FormData();for(const [k,v]of Object.entries({setupToken:token,email:'owner@example.invalid',name:'Test Owner',password:'Test-only-owner-password!',...overrides}))f.set(k,v);return f;};
+beforeEach(()=>{vi.resetAllMocks();vi.stubEnv('OWNER_SETUP_TOKEN',token);m.db.$transaction.mockImplementation(async cb=>cb(m.tx));m.tx.user.count.mockResolvedValue(0);m.tx.user.findUnique.mockResolvedValue(null)});
+afterEach(()=>vi.unstubAllEnvs());
+test('setup disabled without sufficiently long private token',()=>{vi.stubEnv('OWNER_SETUP_TOKEN','short');expect(verifyOwnerSetupToken('short')).toBe(false)});
+test('token comparison rejects wrong and differently sized input',()=>{expect(verifyOwnerSetupToken('incorrect')).toBe(false);expect(verifyOwnerSetupToken(token.replace('secure','SECURE'))).toBe(false);expect(verifyOwnerSetupToken(token)).toBe(true)});
+test('owner validation normalizes email and rejects short password',()=>{expect(ownerDetails.parse({email:'OWNER@EXAMPLE.INVALID',name:'Owner',password:'long-test-password'}).email).toBe('owner@example.invalid');expect(ownerDetails.safeParse({email:'owner@example.invalid',name:'Owner',password:'short'}).success).toBe(false)});
+test('unauthorized setup never accesses database',async()=>{await expect(setupOwner(form({setupToken:'wrong'}))).rejects.toThrow('authorization');expect(m.db.$transaction).not.toHaveBeenCalled()});
+test('first owner is created with hashed password in a serializable transaction',async()=>{await expect(setupOwner(form())).rejects.toThrow('/login?ownerSetup=complete');const data=m.tx.user.create.mock.calls[0][0].data;expect(data.role).toBe('ADMIN');expect(data.passwordHash).not.toBe('Test-only-owner-password!');expect(data.passwordHash).toMatch(/^\$2/);expect(m.db.$transaction).toHaveBeenCalledWith(expect.any(Function),{isolationLevel:'Serializable'})});
+test('setup closes after an administrator exists',async()=>{m.tx.user.count.mockResolvedValue(1);await expect(setupOwner(form())).rejects.toThrow('closed');expect(m.tx.user.create).not.toHaveBeenCalled()});
+test('setup never promotes an existing public account',async()=>{m.tx.user.findUnique.mockResolvedValue({id:'customer'});await expect(setupOwner(form())).rejects.toThrow('closed');expect(m.tx.user.create).not.toHaveBeenCalled()});

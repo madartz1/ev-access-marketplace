@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate deploy",
-    "db:check": "node --import tsx scripts/check-db.ts"
+    "db:check": "node --import tsx scripts/check-db.ts",
+    "test:live": "vitest run --config vitest.live.config.ts"
   },
   "dependencies": {
     "@neon/config": "^1.9.3",

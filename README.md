@@ -42,7 +42,7 @@ npm start
 `netlify.toml` uses `npm run build` and `.next`; Netlify automatically provides its current Next.js runtime. Do not add a static SPA fallback. Migrations are intentionally separate from the build. No deployment was requested. Commit messages include `[skip netlify]` to prevent automatic deployment from this upload.
 
 ## Verification on October 23, 2026
-- Production build, TypeScript checks and 22 validation/authorization tests pass.
+- Production build, TypeScript checks and 29 validation/authorization/setup tests pass.
 - Dependency audit: zero vulnerabilities at verification time.
 - No configured secrets were found in the compiled build; private env files and `.neon` are ignored by Git.
 - Public home, fleet information, login and registration pages return HTTP 200. Signed-out dashboard, admin and partner pages redirect to login.
@@ -52,11 +52,25 @@ npm start
 - Application traffic uses `ev_access_runtime`, with SELECT/INSERT/UPDATE privileges on the four application tables, no schema creation, and no migration-table access. Migrations use the separate owner connection.
 - Prisma retains its existing models and uses the matching Neon driver adapter over encrypted WebSockets on Netlify. The Prisma 5 adapter requires the `driverAdapters` preview flag; local non-Neon PostgreSQL retains native connections.
 - Full application-to-Neon end-to-end verification remains pending: this workspace cannot resolve/reach the database endpoint directly, including through the WebSocket driver. Database persistence tests ran through the connected Neon integration; application workflow tests use mocks.
-- An unused API-created role, `ev_access_app`, received Neon's default elevated membership. Attempts to remove those permissions were denied. Its credentials are not used by the application. Delete this unused role after explicit approval; the live app secret uses the restricted SQL-created role instead.
+- The unused elevated role `ev_access_app` was deleted with the owner's approval; `ev_access_runtime` remains.
 
 ## Remaining production requirements
-Provision the owner's administrator account privately, remove the unused role after approval, and verify the deployed application from an environment with database network access: customer registration/login, fleet onboarding, admin approvals, listing submission and rental decisions. Perform simultaneous rental-request tests against PostgreSQL (serializable conflicts currently require a retry). Netlify has not been published; source uploads use `[skip netlify] [skip ci]`.
+Complete the owner's administrator setup privately and verify the deployed application from an environment with database network access: customer registration/login, fleet onboarding, admin approvals, listing submission and rental decisions. Perform simultaneous rental-request tests against PostgreSQL (serializable conflicts currently require a retry). Netlify has not been published; source uploads use `[skip netlify] [skip ci]`.
 
 The runtime database role intentionally cannot create tables or delete rows. Future application features that need additional privileges must receive a narrowly scoped grant. Do not replace its connection with an owner credential.
 
 Before accepting real rentals: verified insurance/business/TLC/driver checks, rental agreements and cancellation policy, secure document/photo storage, password reset and email verification, persistent login throttling, admin MFA, audit logs, monitoring/backups and privacy/support procedures. Payment collection and fleet payouts are not implemented. Supporting verification documents must not be submitted through the public listing fields.
+
+## First administrator setup
+The `/owner-setup` page is implemented and disabled by default. When the owner is ready, set `OWNER_SETUP_TOKEN` privately in Netlify with Functions and Builds scopes, using a cryptographically random value of at least 32 characters, then rebuild with publishing still controlled. Open `/owner-setup`, enter the private key, and choose the administrator name, email and password directly in the form. Never post the key or password in GitHub or chat. Successful setup redirects to login. Account creation runs in a serializable transaction; it refuses an existing admin or public account, and never silently promotes a customer. Remove the setup token after success. The seed command remains available for private terminal provisioning.
+
+## Isolated live workflow test suite
+`npm run test:live` runs the actual application actions and authentication against PostgreSQL with only the Next.js request/cookie wrappers simulated. It covers registration, password login, role restrictions, partner application, administrator reviews, listing submission, simultaneous booking requests and fleet acceptance. It is separate from the ordinary test suite and has not passed in this network-restricted workspace.
+
+Run it from an environment that can reach Neon using a fresh, short-lived test branch that has the committed migrations. Supply the test credentials privately:
+- `TEST_DATABASE_URL`: connection string for the isolated branch.
+- `TEST_DATABASE_HOST`: the exact endpoint hostname you confirmed belongs to that branch.
+- `RUN_ISOLATED_DATABASE_TESTS=yes`: explicit opt-in.
+- Keep `DATABASE_URL` set to the real application endpoint so the guard can reject accidental reuse of it.
+
+The suite refuses a mismatched test hostname or the application database endpoint. Test users/listings stay only in the test branch; let the branch expire after verification. Do not run it against production.
