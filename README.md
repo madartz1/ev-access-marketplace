@@ -23,7 +23,7 @@ After Neon authentication, run the requested initialization and deployment:
 npx neon@latest init -y --org-id org-frosty-hall-91761929 --project-id summer-math-67084158 --branch production --services postgres
 npx neon@latest deploy
 ```
-Neon setup is currently blocked pending approval of the CLI's unrelated Vercel telemetry request. Do not interpret this README as approval to bypass that block.
+Neon initialization has created the local link and configuration. Google sign-in succeeded, but the CLI's account-wide OAuth consent is pending explicit approval. PostgreSQL access has not yet been verified.
 
 Prisma CLI reads `.env`, while Next.js also reads `.env.local`. Supply both database variables privately to migration commands if Neon writes `.env.local`. Do not print credentials in command history or logs.
 
@@ -47,7 +47,7 @@ npm start
 - Public home, fleet information, login and registration pages return HTTP 200.
 - Signed-out dashboard, admin and partner pages redirect to login.
 - Workflow tests use a mocked database: they verify authorization, validation, pricing, expired documents, overlap rejection and partner decisions, not live PostgreSQL persistence.
-- Live Neon connectivity and schema verification have NOT passed; connection variables are unavailable while initialization is blocked.
+- Live Neon connectivity and schema verification have NOT passed; connection variables are unavailable while CLI authorization is pending.
 
 ## Remaining production requirements
 Complete Neon authentication/provisioning and Netlify database secrets, test migrations, provision the administrator privately, and verify real persistence for customer registration/login, fleet onboarding, admin approvals, listing submission and rental decisions. Perform concurrent-request tests against PostgreSQL (serializable transactions can reject conflicts and currently require the customer to retry).
