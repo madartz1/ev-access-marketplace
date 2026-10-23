@@ -1,0 +1,2 @@
+import {PrismaClient} from '@prisma/client';import {hash} from 'bcryptjs';
+const db=new PrismaClient();async function main(){const email=process.env.ADMIN_EMAIL,password=process.env.ADMIN_PASSWORD;if(!email||!password||password.length<12)throw Error('Set ADMIN_EMAIL and ADMIN_PASSWORD (12+ characters)');await db.user.upsert({where:{email},update:{role:'ADMIN'},create:{email,name:'EV Access Administrator',role:'ADMIN',passwordHash:await hash(password,12)}});console.log('Admin provisioned');}main().finally(()=>db.$disconnect());
