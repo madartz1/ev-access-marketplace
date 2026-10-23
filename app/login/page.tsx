@@ -1,0 +1,1 @@
+import {login} from '@/lib/actions';export default function Page(){return <div className="formwrap card"><h1>Welcome back</h1><form action={login}><label>Email<input type="email" name="email" required/></label><label>Password<input type="password" name="password" required/></label><button>Log in</button></form></div>}

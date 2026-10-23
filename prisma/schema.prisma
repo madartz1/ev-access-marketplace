@@ -1,8 +1,27 @@
-generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
-enum Role { CUSTOMER PARTNER ADMIN }
-enum Status { PENDING APPROVED REJECTED }
-enum BookingStatus { REQUESTED ACCEPTED DECLINED CANCELLED }
+generator client {
+ provider = "prisma-client-js"
+}
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL")
+ directUrl = env("DATABASE_URL_UNPOOLED")
+}
+enum Role {
+ CUSTOMER
+ PARTNER
+ ADMIN
+}
+enum Status {
+ PENDING
+ APPROVED
+ REJECTED
+}
+enum BookingStatus {
+ REQUESTED
+ ACCEPTED
+ DECLINED
+ CANCELLED
+}
 model User {
  id String @id @default(cuid())
  email String @unique
@@ -64,6 +83,8 @@ model Booking {
  vehicle Vehicle @relation(fields:[vehicleId],references:[id])
  startDate DateTime
  endDate DateTime
+ @@index([vehicleId, status, startDate, endDate])
+ @@index([customerId])
  estimatedTotalCents Int
  useType String
  status BookingStatus @default(REQUESTED)
