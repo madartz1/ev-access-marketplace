@@ -1,5 +1,7 @@
 'use server';
 import {db} from './db';
+import {isDemoVehicleId} from './vehicle-view';
+import {rentalReturnPath} from './return-path';
 import {currentUser,setSession} from './auth';
 import {hash,compare} from 'bcryptjs';
 import {redirect} from 'next/navigation';
@@ -13,12 +15,12 @@ export async function register(f:FormData){
  const password=z.string().min(10).parse(s(f,'password'));
  const name=z.string().min(2).parse(s(f,'name'));
  if(await db.user.findUnique({where:{email}}))fail('Email already registered');
- const u=await db.user.create({data:{email,name,passwordHash:await hash(password,12)}});await setSession(u.id);redirect('/dashboard');
+ const u=await db.user.create({data:{email,name,passwordHash:await hash(password,12)}});await setSession(u.id);redirect(rentalReturnPath(s(f,'returnTo')));
 }
 export async function login(f:FormData){
  const u=await db.user.findUnique({where:{email:s(f,'email').toLowerCase()}});
  if(!u||!(await compare(s(f,'password'),u.passwordHash)))fail('Invalid credentials');
- await setSession(u.id);redirect('/dashboard');
+ await setSession(u.id);redirect(rentalReturnPath(s(f,'returnTo')));
 }
 export async function logout(){const {cookies}=await import('next/headers');(await cookies()).delete('ev_session');redirect('/')}
 export async function applyPartner(f:FormData){
@@ -43,6 +45,7 @@ export async function addVehicle(f:FormData){
  revalidatePath('/vehicles');redirect('/dashboard');
 }
 export async function requestBooking(f:FormData){
+ if(isDemoVehicleId(s(f,'vehicleId')))fail('Demo vehicles cannot be booked');
  const u=await currentUser();if(!u)redirect('/login');
  const {start,end,days}=rentalPeriod(s(f,'startDate'),s(f,'endDate'));
  const useType=purpose.parse(s(f,'useType'));
