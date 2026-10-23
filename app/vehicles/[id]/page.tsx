@@ -1,2 +1,15 @@
-import {db} from '@/lib/db';import {requestBooking} from '@/lib/actions';import {notFound} from 'next/navigation';
-export default async function Page({params}:{params:Promise<{id:string}>}){const v=await db.vehicle.findUnique({where:{id:(await params).id},include:{partner:true}});if(!v||v.status!=='APPROVED'||v.partner.status!=='APPROVED'||v.insuranceExpires<=new Date()||v.registrationExpires<=new Date()||v.partner.insuranceExpires<=new Date())notFound();return <div className="detailgrid"><div className="card">{v.imageUrl?<img className="vehicle" src={v.imageUrl} alt={v.model}/>:<div className="placeholder">🚙⚡</div>}<h1>{v.year} {v.make} {v.model}</h1><p>{v.city} • {v.seats} seats • {v.rangeMiles} miles estimated range</p><p>{v.description}</p><span className="pill">{v.tlcEligible?'Rideshare eligibility claimed — verify with fleet':'Personal use listing'}</span><p>Provided by {v.partner.businessName}</p></div><div className="card"><h2>Request this EV</h2><p><strong>${(v.dailyRateCents/100).toFixed(2)} per day</strong></p><form action={requestBooking}><input type="hidden" name="vehicleId" value={v.id}/><label>Pickup date<input type="date" name="startDate" required/></label><label>Return date<input type="date" name="endDate" required/></label><label>Rental purpose<select name="useType"><option>Personal use</option><option>Rideshare (subject to TLC and platform approval)</option><option>Business use</option></select></label><button>Send rental request</button></form><p className="muted">Requests are not confirmed reservations. No payment is collected at this stage. Insurance and driver eligibility must be checked before handoff.</p></div></div>}
+import {db} from '@/lib/db';
+import {currentUser} from '@/lib/auth';
+import {notFound} from 'next/navigation';
+import {demoVehicles} from '@/lib/demo-vehicles';
+import {isDemoVehicleId,type VehicleView} from '@/lib/vehicle-view';
+import {VehicleDetail} from '@/components/vehicles/detail';
+export const dynamic='force-dynamic';
+export default async function Page({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{pickup?:string;return?:string}>}){
+ const {id}=await params,query=await searchParams;
+ if(isDemoVehicleId(id)){const demo=demoVehicles.find(v=>v.id===id);if(!demo)notFound();return <VehicleDetail vehicle={demo} pickup={query.pickup} dropoff={query.return}/>}
+ const v=await db.vehicle.findUnique({where:{id},include:{partner:true}});
+ if(!v||v.status!=='APPROVED'||v.partner.status!=='APPROVED'||v.insuranceExpires<=new Date()||v.registrationExpires<=new Date()||v.partner.insuranceExpires<=new Date())notFound();
+ const vehicle:VehicleView={id:v.id,name:`${v.make} ${v.model}`,make:v.make,model:v.model,year:v.year,vehicleType:v.vehicleType,seats:v.seats,rangeMiles:v.rangeMiles,dailyRateCents:v.dailyRateCents,city:v.city,imageUrl:v.imageUrl,description:v.description,providerName:v.partner.businessName,tlcEligible:v.tlcEligible,demo:false};
+ return <VehicleDetail vehicle={vehicle} pickup={query.pickup} dropoff={query.return} signedIn={Boolean(await currentUser())}/>;
+}
