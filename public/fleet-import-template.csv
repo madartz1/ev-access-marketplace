@@ -1,0 +1,2 @@
+make,model,year,vin,plate,vehicleType,seats,rangeMiles,dailyRate,city,insuranceExpires,registrationExpires,imageUrl,description,tlcEligible,tlcPlate
+Example,Replace this row,2026,REPLACE0000000001,REPLACE-PLATE,Car,5,250,89.00,Queens,2099-12-31,2099-12-31,,Replace all example details before importing,no,

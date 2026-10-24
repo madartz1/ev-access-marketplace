@@ -17,6 +17,7 @@
     "@neon/config": "^1.9.3",
     "@neon/env": "^1.6.4",
     "@neondatabase/serverless": "^0.10.4",
+    "@netlify/blobs": "^11.1.6",
     "@prisma/adapter-neon": "^5.22.0",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
@@ -24,8 +25,9 @@
     "next": "^16.4.3",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "sharp": "^0.35.5",
     "ws": "^8.22.0",
-    "zod": "^3.24.2"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
