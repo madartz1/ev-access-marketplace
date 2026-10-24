@@ -1,5 +1,6 @@
-// Keep authentication redirects on an internal vehicle detail page.
+// Keep authentication redirects on a known internal marketplace page.
 export function rentalReturnPath(value:unknown){
+ if(value==='/partner/fleet'||value==='/partner/add-vehicle')return value;
  if(typeof value!=='string'||!/^\/vehicles\/[a-zA-Z0-9_-]+(?:\?[^#]*)?$/.test(value))return '/dashboard';
  const url=new URL(value,'https://ev-access.invalid');
  const query=new URLSearchParams();

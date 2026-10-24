@@ -1,0 +1,7 @@
+'use client';
+import {useState} from 'react';
+export function PhotoPicker({value,onChange,onBusy,label='Vehicle photo',disabled=false}:{value:string;onChange:(url:string)=>void;onBusy?:(busy:boolean)=>void;label?:string;disabled?:boolean}){
+ const [busy,setBusy]=useState(false),[error,setError]=useState('');
+ async function upload(file:File|undefined){if(!file)return;setError('');if(file.size>3*1024*1024){setError('Choose a photo of 3 MB or smaller.');return}setBusy(true);onBusy?.(true);try{const form=new FormData();form.set('photo',file);const response=await fetch('/api/partner/photos',{method:'POST',body:form});const result=await response.json();if(!response.ok)throw Error(result.error||'Unable to upload photo.');onChange(result.url)}catch(e){setError(e instanceof Error?e.message:'Upload failed.')}finally{setBusy(false);onBusy?.(false)}}
+ return <div className="fleet-photo-picker"><label>{label}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy||disabled} onChange={e=>{void upload(e.target.files?.[0]);e.target.value=''}}/></label><small>JPEG, PNG, or WebP · up to 3 MB · one cover photo per vehicle. Convert HEIC to JPEG before uploading.</small>{busy&&<p role="status">Uploading your photo…</p>}{error&&<p role="alert" className="ev-error">{error}</p>}{value&&<div className="fleet-photo-preview"><img src={value} alt="Vehicle cover photo preview"/><button type="button" className="button secondary" disabled={busy||disabled} onClick={()=>onChange('')}>Remove selection</button></div>}</div>;
+}

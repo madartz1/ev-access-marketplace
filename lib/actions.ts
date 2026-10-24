@@ -1,5 +1,6 @@
 'use server';
 import {db} from './db';
+import {assertOwnedPhoto} from './fleet-import';
 import {isDemoVehicleId} from './vehicle-view';
 import {rentalReturnPath} from './return-path';
 import {currentUser,setSession} from './auth';
@@ -37,6 +38,7 @@ export async function addVehicle(f:FormData){
  if(!p||p.status!=='APPROVED')fail('Approved partner account required');
  vehicleFields.parse(Object.fromEntries(['make','model','plate','city','vehicleType','seats','rangeMiles','imageUrl','description','tlcPlate'].map(k=>[k,s(f,k)])));
  const insuranceExpires=futureDate.parse(s(f,'insuranceExpires')),registrationExpires=futureDate.parse(s(f,'registrationExpires'));
+ assertOwnedPhoto(s(f,'imageUrl'),p.id);
  if(p.insuranceExpires<=new Date())fail('Partner insurance has expired');
  if(!(insuranceExpires>new Date())||!(registrationExpires>new Date()))fail('Documents must be current');
  const year=z.coerce.number().int().min(2015).max(2035).parse(s(f,'year'));
